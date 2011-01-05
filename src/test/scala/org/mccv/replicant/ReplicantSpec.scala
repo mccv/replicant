@@ -21,15 +21,19 @@ object ReplicantSpec extends Specification {
       println("s".m.pub.~("index.*").takes("int"))
     }
     "print native array types" in {
-      new Natives().m
+      println(new Natives().m)
     }
 
     "print scala-y stuff" in {
-      List(1,2,3).m
+      println(List(1,2,3).m ~ "[/:\\\\\\+-].*")
     }
 
     "inspect constructors" in {
-      println("s".c.takes("char"))
+      println(println("s".c.takes("char")))
+    }
+
+    "print varargs correctly" in {
+      println("s".m / "format")
     }
   }
 }

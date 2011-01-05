@@ -81,7 +81,7 @@ trait InspectableBase {
   /**
    * a terribly slow unmangler
    */
-  def unmangleName(name: String) = {
+  def unmangle(name: String) = {
     mangles.foldLeft(name){ case(acc, (from, to)) => {
       acc.replace(from, to)
     }}
@@ -161,11 +161,11 @@ trait Members[T <: Member, U] extends InspectableBase {
   /** volatile members */
   def vol = filter(clazz, (x => Modifier.isVolatile(x.getModifiers())))
   /** all members containing the specified string in their name (case insensitive) */
-  def /(find: String) = filter(clazz, (x => x.getName.toLowerCase.contains(find.toLowerCase)))
+  def /(find: String) = filter(clazz, (x => unmangle(x.getName).toLowerCase.contains(find.toLowerCase)))
   /** all members whose name matches the specified string (regex) */
-  def ~(find: String) = filter(clazz, (x => x.getName.matches(find)))
+  def ~(find: String) = filter(clazz, (x => unmangle(x.getName).matches(find)))
   /** all members whose declaring class's canonical name contains the specified string */
-  def from(pkg: String) = filter(clazz, (x => x.getDeclaringClass().getCanonicalName().toLowerCase.contains(pkg.toLowerCase)))
+  def from(pkg: String) = filter(clazz, (x => unmangle(x.getDeclaringClass().getCanonicalName()).toLowerCase.contains(pkg.toLowerCase)))
 }
 
 /**
@@ -202,32 +202,34 @@ class Methods(override val clazz: Class[_], f: Method => Boolean) extends Member
    */
   def inspectMethods(fLoc: Method => Boolean): String = {
     val sb = new StringBuilder()
-    val banner = new StringBuilder()
-    banner.append(GREEN).append("=== methods from ").append(clazz.getName).append("===").append(WHITE).append("\n")
-    filteredMethods.foreach(method => {
-      sb.append(inspectMethod(method))
-      sb.append(inspectParameters(method))
-      sb.append("\n")
-    })
+    if (filteredMethods.size > 0) {
+      sb.append(GREEN).append("=== methods from ").append(clazz.getName).append("===").append(WHITE).append("\n")
+      filteredMethods.foreach(method => {
+        sb.append(inspectMethod(method))
+        sb.append(inspectParameters(method))
+        sb.append(": ").append(decodeClassName(method.getReturnType.getName))
+        sb.append("\n")
+      })
+    }
     siMethods.foreach(cl => sb.append(cl.inspectMethods(fLoc)))
     intMethods.foreach(cl => sb.append(cl.inspectMethods(fLoc)))
-    if (sb.size > 0) {
-      banner.append(sb)
-      banner.toString
-    } else {
-      sb.toString
-    }
+    sb.toString
   }
 
-  def inspectMethod(m: Member) = {
+  def inspectMethod(m: Method) = {
     val sb = new StringBuilder()
     sb.append(inspectModifiers(m.getModifiers())).append("\t")
-    sb.append(unmangleName(m.getName))
+    sb.append(unmangle(m.getName))
     sb.toString
   }
 
   def inspectParameters(m: Method) = {
-    m.getParameterTypes.map(param => decodeClassName(param.getName)).mkString("(", ", ", ")")
+    val params = m.getParameterTypes.map(param => decodeClassName(param.getName)).mkString(", ")
+    if (m.isVarArgs) {
+      "(" + params.substring(0, params.length - 2) + "*)"
+    } else {
+      "(" + params + ")"
+    }
   }
 
   override def toString() = {
@@ -251,7 +253,7 @@ class Constructors(override val clazz: Class[_], f: Constructor[_] => Boolean) e
 
   def inspectConstructors(): String = {
     val sb = new StringBuilder()
-    sb.append(GREEN).append("=== methods from ").append(clazz.getName).append("===").append(WHITE).append("\n")
+    sb.append(GREEN).append("=== constructors for ").append(clazz.getName).append("===").append(WHITE).append("\n")
     filteredConstructors.foreach(cons => {
       sb.append(inspectConstructor(cons))
       sb.append(inspectParameters(cons))
@@ -263,7 +265,7 @@ class Constructors(override val clazz: Class[_], f: Constructor[_] => Boolean) e
   def inspectConstructor(c: Member) = {
     val sb = new StringBuilder()
     sb.append(inspectModifiers(c.getModifiers())).append("\t")
-    sb.append(unmangleName(c.getName))
+    sb.append(unmangle(c.getName))
     sb.toString
   }
 
@@ -317,7 +319,7 @@ class Fields(override val clazz: Class[_], f: Field => Boolean) extends Members[
   def inspectField(c: Member) = {
     val sb = new StringBuilder()
     sb.append(inspectModifiers(c.getModifiers())).append("\t")
-    sb.append(unmangleName(c.getName))
+    sb.append(unmangle(c.getName))
     sb.toString
   }
 
