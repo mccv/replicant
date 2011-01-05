@@ -1,0 +1,142 @@
+# Replicant #
+
+Replicant is a set of utilities intended to ease inspection of objects
+in the scala REPL. This is an 0.1 release, so it's currently
+
+* Barely tested
+* Light on functionality
+* Also light on useability
+
+If you have bugs/requests/etc. please let me know
+
+# Usage #
+
+## Dependencies##
+
+Replicant requires scala 2.8.1 (http://www.scala-lang.org/) and SBT
+(http://code.google.com/p/simple-build-tool/) if you want to build
+from source.
+
+## Building ##
+
+After cloning the project, run "sbt update package".  This should
+create a jar file in target.
+
+## Using it in the REPL ##
+
+Once you have the jar, just add it to your scala classpath, e.g.
+
+scala -cp replicant-0.1-SNAPSHOT.jar
+
+Replicant provides a set of implicits in org.mccv.replicant.Replicant
+that you'll likely want to use.  Just type
+
+import org.mccv.replicant.Replicant._
+
+To make them available
+
+# Features #
+
+## The Basics ##
+There are three high level commands available on any object.
+
+* m() returns an inspector for all methods defined on an object, e.g.
+
+<code><pre>
+    scala> "s".m                                
+    res1: org.mccv.replicant.Methods = 
+    === methods from java.lang.String===
+        +     	equals(java.lang.Object)
+        +     	toString()
+        +     	hashCode()
+</pre></code>
+
+* c() returns an inspector for all constructors defined on an object,
+  e.g.
+
+<code><pre>
+scala> "s".c
+res2: org.mccv.replicant.Constructors = 
+=== methods from java.lang.String===
+      +     	java.lang.String()
+      +     	java.lang.String(java.lang.String)
+      +     	java.lang.String(char[])
+      +     	java.lang.String(char[], int, int)
+      +     	java.lang.String(int[], int, int)
+      +     	java.lang.String(byte[], int, int, int)
+</code></pre>
+
+* f() returns an inspector for all fields defined on an object, e.g.
+
+<code><pre>
+res3: org.mccv.replicant.Fields = 
+=== fields from java.lang.String===
+ F  -       	value
+ F  -       	offset
+ F  -       	count
+    -       	hash
+ F  -  S    	serialVersionUID
+</pre></code>
+
+This is partial output.  In the case of scala objects you may get a
+string hundreds (and hundreds) of lines long. Each
+method/field/constructor is displayed with a string representation of
+its modifiers, its name, and parameter types (for fields and
+constructors).
+
+The complete list of possible modifier columns is...
+
+AFIN-*+Ss|TV
+
+Which correspond to abstract, final, interface, native, private,
+protected, public, static, strict, synchronized, transient and
+volatile.
+
+## Filters ##
+
+Some objects have a ton of methods. Each replicant inspector takes a
+filter to restrict the set of displayed items. The default filter just
+passes everything through, but it's simple to apply additional
+filters. The following line finds all public methods that contain the
+term "index"
+
+<code><pre>
+scala> "s".m.pub / "index"
+res5: org.mccv.replicant.Methods = 
+=== methods from java.lang.String===
+      +     	indexOf(int)
+      +     	indexOf(java.lang.String)
+      +     	indexOf(java.lang.String, int)
+      +     	indexOf(int, int)
+      +     	lastIndexOf(java.lang.String, int)
+      +     	lastIndexOf(int)
+      +     	lastIndexOf(int, int)
+      +     	lastIndexOf(java.lang.String)
+</pre></code>
+
+If you want to further restrict this to just methods that take a
+String argument, you can do that with
+
+<code><pre>
+scala> "s".m.pub./("index").takes("String")
+res6: org.mccv.replicant.Methods = 
+=== methods from java.lang.String===
+      +     	indexOf(java.lang.String)
+      +     	indexOf(java.lang.String, int)
+      +     	lastIndexOf(java.lang.String, int)
+      +     	lastIndexOf(java.lang.String)
+
+</pre></code>
+
+Have a look at org.mccv.replicant.Replicant.scala for more predefined
+filters.  You can also define your own like so:
+
+<code><pre>
+scala> "s".m.filter(x => x.getName.endsWith("f"))
+res9: org.mccv.replicant.Methods = 
+=== methods from java.lang.String===
+      +     	indexOf(int)
+      +     	indexOf(java.lang.String)
+       S    	indexOf(char[], int, int, char[], int, int, int)
+      +     	indexOf(java.lang.String, int)
+</pre></code>
